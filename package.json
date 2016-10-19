@@ -1,0 +1,29 @@
+{
+  "name": "vue-meteor-tracker",
+  "version": "1.0.0",
+  "description": "Use Meteor Tracker reactivity inside Vue components",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Akryum/vue-meteor-integration.git"
+  },
+  "keywords": [
+    "vue",
+    "meteor",
+    "integration",
+    "tracker",
+    "reactivity"
+  ],
+  "author": "Guillaume CHAU",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Akryum/vue-meteor-integration/issues"
+  },
+  "homepage": "https://github.com/Akryum/vue-meteor-integration#readme",
+  "dependencies": {
+    "lodash.omit": "^4.5.0"
+  }
+}
