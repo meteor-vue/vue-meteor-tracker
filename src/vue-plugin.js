@@ -7,7 +7,7 @@ function defaultSubscription(...args) {
 }
 
 export default {
-  install(Vue) {
+  install(Vue, options) {
 
     const vueVersion = parseInt(Vue.version.charAt(0));
 
@@ -17,6 +17,10 @@ export default {
       subscribe: defaultSubscription,
       freeze: false,
     };
+
+    for(const k in options) {
+      Vue.config.meteor[k] = options[k];
+    }
 
     function prepare() {
       this._trackerHandles = [];
