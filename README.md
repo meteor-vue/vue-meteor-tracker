@@ -9,7 +9,7 @@ Declarative subscriptions and meteor reactive data (subscriptions, collections, 
 ## Installation
 
 
-  npm install --save vue-meteor-tracker
+    npm install --save vue-meteor-tracker
 
 ## Usage
 
