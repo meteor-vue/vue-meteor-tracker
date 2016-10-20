@@ -8,15 +8,20 @@ Declarative subscriptions and meteor reactive data (subscriptions, collections, 
 
 ## Installation
 
+```
+npm install --save vue-meteor-tracker
+```
 
-    npm install --save vue-meteor-tracker
-
-## Usage
+Install the plugin into Vue:
 
 ```javascript
 import VueMeteorTracker from 'vue-meteor-tracker';
 Vue.use(VueMeteorTracker);
 ```
+
+*Note: if you are using the Meteor [akryum:vue](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue) package, you don't need to install the plugin.*
+
+## Usage
 
 In your Vue component, add a `meteor` object :
 
