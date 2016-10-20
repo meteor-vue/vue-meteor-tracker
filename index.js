@@ -1,1 +1,1 @@
-export VueMeteor from './src/vue-plugin';
+module.exports = require('./lib/vue-plugin');
