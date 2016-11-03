@@ -149,6 +149,9 @@ new Vue({
             id: this.selectedThreadId
           };
         },
+        // Optionally we can watch the parameters for changes in nested
+        // objects using the 'deep' option
+        deep: true,
         //// Meteor Reactivity
         // This will be refresh each time above params changes from Vue
         // Then it calls Tracker.autorun() to refresh the result

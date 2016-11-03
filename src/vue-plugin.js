@@ -82,6 +82,7 @@ export default {
                   autorun(params);
                 }, {
                   immediate: true,
+                  deep: !!options.deep
                 });
               } else {
                 autorun();
