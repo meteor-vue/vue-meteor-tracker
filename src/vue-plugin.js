@@ -24,6 +24,8 @@ export default {
 
     function prepare() {
       this._trackerHandles = [];
+      this._subsAutorun = {};
+      this._subs = {};
 
       // $subReady state
       defineReactive(this, '$subReady', {});
@@ -95,17 +97,10 @@ export default {
         if (meteor.subscribe) {
           for (let key in meteor.subscribe) {
             ((key, options) => {
-              let sub;
-
-              let subscribe = (params) => {
-                if (sub) {
-                  this.$stopHandle(sub);
-                }
-                sub = this.$subscribe(key, ...params);
-              };
+              let subscribe = params => this.$subscribe(key, ...params);
 
               if (typeof options === 'function') {
-                this.$watch(options, (params) => {
+                this.$watch(options, params => {
                   subscribe(params);
                 }, {
                   immediate: true,
@@ -143,15 +138,28 @@ export default {
       methods: {
         $subscribe(...args) {
           if(args.length > 0) {
+            const key = args[0];
+            const oldSub = this._subs[key]
             let handle = Vue.config.meteor.subscribe.apply(this, args);
             this._trackerHandles.push(handle);
+            this._subs[key] = handle
+
+            // Readiness
             if(typeof handle.ready === 'function') {
-              const key = args[0];
               defineReactive(this.$subReady, key, false);
-              this.$autorun(() => {
-                this.$subReady[key] = handle.ready();
+              if (this._subsAutorun[key]) {
+                this._subsAutorun[key].stop();
+              }
+              const autorun = this.$autorun(() => {
+                const ready = this.$subReady[key] = handle.ready();
+                // Wait for the new subscription to be ready before stoping the old one
+                if (ready && oldSub) {
+                  this.$stopHandle(oldSub)
+                }
               });
+              this._subsAutorun[key] = autorun;
             }
+
             return handle;
           } else {
             throw new Error('You must provide the publication name to $subscribe.');
