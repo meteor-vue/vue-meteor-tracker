@@ -1,6 +1,7 @@
 # Vue integration for Meteor
 
-Compatibility: **Vue 1.x, Vue 2.x**
+[![npm](https://img.shields.io/npm/v/vue-meteor-tracker.svg) ![npm](https://img.shields.io/npm/dm/vue-meteor-tracker.svg)](https://www.npmjs.com/package/vue-meteor-tracker)
+[![vue1](https://img.shields.io/badge/vue-1.x-brightgreen.svg) ![vue2](https://img.shields.io/badge/vue-2.x-brightgreen.svg)](https://vuejs.org/)
 
 Declarative subscriptions and meteor reactive data (subscriptions, collections, tracker...)
 
