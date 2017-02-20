@@ -8,7 +8,7 @@ function defaultSubscription(...args) {
 
 export default {
   install(Vue, options) {
-
+    
     const vueVersion = parseInt(Vue.version.charAt(0));
 
     const { defineReactive } = Vue.util;
@@ -20,6 +20,25 @@ export default {
 
     for(const k in options) {
       Vue.config.meteor[k] = options[k];
+    }
+    
+    const merge = Vue.config.optionMergeStrategies.methods
+    Vue.config.optionMergeStrategies.meteor = function (toVal, fromVal, vm) {
+      if (!toVal) return fromVal
+      if (!fromVal) return toVal
+      
+      const toData = Object.assign({}, omit(toVal, [
+        'subscribe',
+        'data',
+      ]), toVal.data);
+      const fromData = Object.assign({}, omit(fromVal, [
+        'subscribe',
+        'data',
+      ]), fromVal.data);
+      
+      return Object.assign({
+        subscribe: merge(toVal.subscribe, fromVal.subscribe),
+      }, merge(toData, fromData))
     }
 
     function prepare() {

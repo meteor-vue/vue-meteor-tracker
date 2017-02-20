@@ -22,6 +22,8 @@ Vue.use(VueMeteorTracker);
 
 *Note: if you are using the Meteor [akryum:vue](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue) package, you don't need to install the plugin.*
 
+**⚠️ You may need to polyfill `Object.assign`.**
+
 ## Usage
 
 In your Vue component, add a `meteor` object :
