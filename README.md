@@ -10,7 +10,7 @@ Declarative subscriptions and meteor reactive data (subscriptions, collections, 
 ## Installation
 
 ```
-npm install --save vue-meteor-tracker
+meteor npm install --save vue-meteor-tracker
 ```
 
 Install the plugin into Vue:
