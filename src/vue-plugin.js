@@ -81,7 +81,7 @@ export default {
                 } else {
                   subscribe(options);
                 }
-              })(key, meteor.subscribe[key]);
+              })(key, subscribeOptions[key]);
             }
           }
 
