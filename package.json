@@ -1,6 +1,6 @@
 {
   "name": "vue-meteor-tracker",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "description": "Use Meteor Tracker reactivity inside Vue components",
   "main": "index.js",
   "scripts": {

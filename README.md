@@ -226,6 +226,39 @@ computed: {
 }
 ```
 
+#### Activating and deactivating meteor data
+
+You can deactivate and activate again the meteor data on the component with `this.$startMeteor` and `this.$stopMeteor`:
+
+```javascript
+export default {
+  meteor: {
+    // ...
+  },
+
+  methods: {
+    activate () {
+      this.$startMeteor()
+    },
+
+    deactivate () {
+      this.$stopMeteor()
+    },
+  },
+}
+```
+
+You can also prevent meteor data from starting automatically with `$lazy`:
+
+```javascript
+export default {
+  meteor: {
+    $lazy: true,
+    // ...
+  },
+}
+```
+
 #### Freezing data
 
 This option will apply `Object.freeze` on the Meteor data to prevent Vue from setting up reactivity on it. This can improve the performance of Vue when rendering large collection lists for example. By default, this option is turned off.

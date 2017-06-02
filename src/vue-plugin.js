@@ -51,6 +51,8 @@ export default {
 
     function launch() {
 
+      this._meteorActive = true
+
       let meteor = this.$options.meteor;
 
       if (meteor) {
@@ -161,18 +163,14 @@ export default {
       // Vue 2.x
       beforeCreate: prepare,
 
-      created: launch,
+      created () {
+        if (this.$options.meteor && !this.$options.meteor.$lazy) {
+          launch.call(this)
+        }
+      },
 
       destroyed: function() {
-        //Stop all reactivity when view is destroyed.
-        this._trackerHandles.forEach((tracker) => {
-          try {
-            tracker.stop()
-          } catch (e) {
-            console.error(e, tracker)
-          }
-        })
-        this._trackerHandles = null
+        this.$stopMeteor()
       },
 
       methods: {
@@ -230,6 +228,28 @@ export default {
           let index = this._trackerHandles.indexOf(handle);
           if (index !== -1) {
             this._trackerHandles.splice(index, 1);
+          }
+        },
+
+        $startMeteor () {
+          if (!this._meteorActive) {
+            prepare.call(this)
+            launch.call(this)
+          }
+        },
+
+        $stopMeteor () {
+          if (this._meteorActive) {
+            //Stop all reactivity when view is destroyed.
+            this._trackerHandles.forEach((tracker) => {
+              try {
+                tracker.stop()
+              } catch (e) {
+                console.error(e, tracker)
+              }
+            })
+            this._trackerHandles = null
+            this._meteorActive = false
           }
         },
 
