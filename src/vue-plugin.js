@@ -1,4 +1,5 @@
 import omit from 'lodash.omit';
+import { Tracker  } from 'meteor/tracker';
 
 function defaultSubscription(...args) {
   return Meteor.subscribe(...args);
