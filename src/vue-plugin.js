@@ -119,7 +119,7 @@ export default {
                     if (result && typeof result.fetch === 'function') {
                       result = result.fetch();
                     }
-                    if(Vue.config.meteor.freeze) {
+                    if(options.freeze === true || Vue.config.meteor.freeze && options.freeze === undefined) {
                       result = Object.freeze(result);
                     }
                     this[key] = result;

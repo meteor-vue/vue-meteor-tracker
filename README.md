@@ -154,6 +154,9 @@ new Vue({
       // Optionally we can watch the parameters for changes in nested
       // objects using the 'deep' option
       deep: true,
+      // Optionally we can decide whether to freeze data
+      // using the 'freeze' option
+      freeze: true,
       //// Meteor Reactivity
       // This will be refresh each time above params changes from Vue
       // Then it calls Tracker.autorun() to refresh the result
