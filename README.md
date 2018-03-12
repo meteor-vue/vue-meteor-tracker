@@ -65,7 +65,7 @@ You can also use the `$subscribe(name, ...params)` method in you component code:
 
 
 ```javascript
-ready () {
+mounted () {
   // Subscribes to the 'threads' publication with two parameters
   this.$subscribe('thread', 'new', 10);
 }
