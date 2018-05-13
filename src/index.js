@@ -91,15 +91,7 @@ export default {
           if (data) {
             for (let key in data) {
               if (key.charAt(0) !== '$') {
-                const options = data[key]
-                let func
-                if (typeof options === 'function') {
-                  func = options.bind(this)
-                } else {
-                  throw Error(`Meteor data '${key}': You must provide a function which returns the result.`)
-                }
-
-                this.$addMeteorData(key, func)
+                this.$addMeteorData(key, data[key])
               }
             }
           }
@@ -228,49 +220,50 @@ export default {
         },
 
         $addMeteorData (key, func) {
-          const hasDataField = hasProperty(this.$data, key)
-          if (!hasDataField && !hasProperty(this, key) && !hasProperty(this.$props, key)) {
-            Object.defineProperty(this, key, {
-              get: () => this.$data.$meteor.data[key],
-              enumerable: true,
-              configurable: true,
-            })
+          if (typeof func === 'function') {
+            func = func.bind(this)
+          } else {
+            throw Error(`Meteor data '${key}': You must provide a function which returns the result.`)
           }
 
-          const setData = value => {
-            set(hasDataField ? this.$data : this.$data.$meteor.data, key, value)
+          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || hasProperty(this, key)) {
+            throw Error(`Meteor data '${key}': Property already used in the component data, props or other.`)
           }
 
-          setData(null)
+          Object.defineProperty(this, key, {
+            get: () => this.$data.$meteor.data[key],
+            enumerable: true,
+            configurable: true,
+          })
 
           // Function run
-          const run = (params) => {
-            let result = func(params)
+          const setResult = result => {
             if (result && typeof result.fetch === 'function') {
               result = result.fetch()
             }
             if (Vue.config.meteor.freeze) {
               result = Object.freeze(result)
             }
-            setData(result)
-          }
-
-          // Meteor autorun
-          let computation
-          const unautorun = () => {
-            if (computation) this.$stopHandle(computation)
-          }
-          const autorun = () => {
-            unautorun()
-            computation = this.$autorun(() => {
-              run()
-            })
+            set(this.$data.$meteor.data, key, result)
           }
 
           // Vue autorun
-          const unwatch = this.$watch(autorun, noop, {
-            immediate: true,
+          const unwatch = this.$watch(func, noop)
+          const watcher = this._watchers.find(w => w.getter === func)
+
+          // Meteor autorun
+          let computation = this.$autorun(() => {
+            // Vue watcher deps are also-rebuilt
+            const result = watcher.get()
+            setResult(result)
           })
+          const unautorun = () => {
+            if (computation) this.$stopHandle(computation)
+          }
+          // Update from Vue (override)
+          watcher.update = () => {
+            computation.invalidate()
+          }
 
           return () => {
             unwatch()
