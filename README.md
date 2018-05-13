@@ -103,7 +103,7 @@ Vue.config.meteor.subscribe = function(...args) {
 
 #### Reactive data
 
-You can make your component `data` properties update from any Meteor reactive sources (like collections or session) by putting an object for each property in the `meteor` object. The object key is the name of the property (it shouldn't start with `$`), and the value is a function.
+You can make your component `data` properties update from any Meteor reactive sources (like collections or session) by putting an object for each property in the `meteor` object. The object key is the name of the property (it shouldn't start with `$`), and the value is a function that returns the result.
 
 Here is an example:
 
@@ -126,8 +126,6 @@ export default {
     // Threads list
     // This will update the 'threads' array property on the Vue instance
     // that we set in the data() hook earlier
-    // You can use a function directly if you don't need
-    // parameters coming from the Vue instance
     threads () {
       // Here you can use Meteor reactive sources
       // like cursors or reactive vars
@@ -139,23 +137,29 @@ export default {
     // Selected thread
     // This will update the 'selectedThread' object property on component
     selectedThread () {
+      // You can also use Vue reactive data inside
       return Threads.findOne(this.selectedThreadId)
     }
   }
 })
 ```
 
-You can skip the data initialization (the default value will be `null`).
+You can skip the data initialization (the default value will be `undefined`).
 
 Use the reactive data in the template:
 
 
 ```html
 <!-- Thread list -->
-<thread-item v-for="thread in threads" :data="thread" :selected="thread._id === selectedThreadId" @select="selectThread(thread._id)"></thread-item>
+<ThradItem
+  v-for="thread in threads"
+  :data="thread"
+  :selected="thread._id === selectedThreadId"
+  @select="selectThread(thread._id)"
+/>
 
 <!-- Selected thread -->
-<thread v-if="selectedThread" :id="selectedThreadId"></thread>
+<Thread v-if="selectedThread" :id="selectedThreadId"/>
 ```
 
 
