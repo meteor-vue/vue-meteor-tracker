@@ -1757,15 +1757,7 @@ var index = {
           if (data) {
             for (var _key in data) {
               if (_key.charAt(0) !== '$') {
-                var _options = data[_key];
-                var func = void 0;
-                if (typeof _options === 'function') {
-                  func = _options.bind(this);
-                } else {
-                  throw Error('Meteor data \'' + _key + '\': You must provide a function which returns the result.');
-                }
-
-                this.$addMeteorData(_key, func);
+                this.$addMeteorData(_key, data[_key]);
               }
             }
           }
@@ -1896,51 +1888,54 @@ var index = {
         $addMeteorData: function $addMeteorData(key, func) {
           var _this4 = this;
 
-          var hasDataField = hasProperty(this.$data, key);
-          if (!hasDataField && !hasProperty(this, key) && !hasProperty(this.$props, key)) {
-            Object.defineProperty(this, key, {
-              get: function get$$1() {
-                return _this4.$data.$meteor.data[key];
-              },
-              enumerable: true,
-              configurable: true
-            });
+          if (typeof func === 'function') {
+            func = func.bind(this);
+          } else {
+            throw Error('Meteor data \'' + key + '\': You must provide a function which returns the result.');
           }
 
-          var setData = function setData(value) {
-            set$1(hasDataField ? _this4.$data : _this4.$data.$meteor.data, key, value);
-          };
+          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || hasProperty(this, key)) {
+            throw Error('Meteor data \'' + key + '\': Property already used in the component data, props or other.');
+          }
 
-          setData(null);
+          Object.defineProperty(this, key, {
+            get: function get$$1() {
+              return _this4.$data.$meteor.data[key];
+            },
+            enumerable: true,
+            configurable: true
+          });
 
           // Function run
-          var run = function run(params) {
-            var result = func(params);
+          var setResult = function setResult(result) {
             if (result && typeof result.fetch === 'function') {
               result = result.fetch();
             }
             if (Vue.config.meteor.freeze) {
               result = Object.freeze(result);
             }
-            setData(result);
-          };
-
-          // Meteor autorun
-          var computation = void 0;
-          var unautorun = function unautorun() {
-            if (computation) _this4.$stopHandle(computation);
-          };
-          var autorun = function autorun() {
-            unautorun();
-            computation = _this4.$autorun(function () {
-              run();
-            });
+            set$1(_this4.$data.$meteor.data, key, result);
           };
 
           // Vue autorun
-          var unwatch = this.$watch(autorun, noop, {
-            immediate: true
+          var unwatch = this.$watch(func, noop);
+          var watcher = this._watchers.find(function (w) {
+            return w.getter === func;
           });
+
+          // Meteor autorun
+          var computation = this.$autorun(function () {
+            // Vue watcher deps are also-rebuilt
+            var result = watcher.get();
+            setResult(result);
+          });
+          var unautorun = function unautorun() {
+            if (computation) _this4.$stopHandle(computation);
+          };
+          // Update from Vue (override)
+          watcher.update = function () {
+            computation.invalidate();
+          };
 
           return function () {
             unwatch();
