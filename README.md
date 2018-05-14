@@ -37,7 +37,7 @@ export default {
 }
 ```
 
-#### Subscriptions
+### Subscriptions
 
 Add an object for each subscription in a `$subscribe` object. The object key is the name of the publication and the value is either an array of parameters or a function returning an array of parameters. These subscription will be stopped when the component is destroyed.
 
@@ -101,7 +101,7 @@ Vue.config.meteor.subscribe = function(...args) {
 }
 ```
 
-#### Reactive data
+### Reactive data
 
 You can add reactive properties that update from any Meteor reactive sources (like collections or session) by putting an object for each property in the `meteor` object. The object key is the name of the property (it shouldn't start with `$`), and the value is a function that returns the result.
 
@@ -166,7 +166,7 @@ computed: {
 }
 ```
 
-#### Activating and deactivating meteor data
+### Activating and deactivating meteor data
 
 You can deactivate and activate again the meteor data on the component with `this.$startMeteor` and `this.$stopMeteor`:
 
@@ -199,13 +199,48 @@ export default {
 }
 ```
 
-#### Freezing data
+### Freezing data
 
 This option will apply `Object.freeze` on the Meteor data to prevent Vue from setting up reactivity on it. This can improve the performance of Vue when rendering large collection lists for example. By default, this option is turned off.
 
 ```js
 // Disable Vue reactivity on Meteor data
 Vue.config.meteor.freeze = true
+```
+
+### Without meteor option
+
+**Not currently SSR-friendly**
+
+With the special methods injected to the components, you can use reactive Meteor data without the `meteor` option:
+
+```js
+export default {
+  data () {
+    return {
+      limit: 5,
+      sort: true,
+    }
+  },
+
+  created () {
+    // Not SSR friendly (for now)
+    this.$subscribe('notes', () => [this.limit])
+  },
+
+  computed: {
+    notes () {
+      // Not SSR friendly (for now)
+      return this.$autorun(() => Notes.find({}, {
+        sort: { created: this.sort ? -1 : 1 },
+      }))
+    },
+
+    firstNote () {
+      return this.notes.length && this.notes[0]
+    },
+  },
+}
 ```
 
 ### Components
