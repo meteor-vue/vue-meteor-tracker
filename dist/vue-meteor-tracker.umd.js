@@ -1660,7 +1660,7 @@ var CMeteorSub = {
       var parameters = typeof this.parameters === 'function' ? this.parameters : function () {
         return _this.parameters || [];
       };
-      this.$_unsub = this.$addReactiveSub(this.name, parameters);
+      this.$_unsub = this.$subscribe(this.name, parameters);
     }
   },
 
@@ -1721,6 +1721,16 @@ var index = {
       }, merge(toData, fromData));
     };
 
+    function getResult(result) {
+      if (result && typeof result.fetch === 'function') {
+        result = result.fetch();
+      }
+      if (Vue.config.meteor.freeze) {
+        result = Object.freeze(result);
+      }
+      return result;
+    }
+
     function prepare() {
       var _this = this;
 
@@ -1750,21 +1760,16 @@ var index = {
 
         if (!isServer || ssr) {
           // Subscriptions
-          if (meteor.subscribe || meteor.$subscribe) {
-            var subscribeOptions = Object.assign({}, meteor.subscribe, meteor.$subscribe);
-            for (var key in subscribeOptions) {
-              this.$addReactiveSub(key, subscribeOptions[key]);
+          if (meteor.$subscribe) {
+            for (var key in meteor.$subscribe) {
+              this.$subscribe(key, meteor.$subscribe[key]);
             }
           }
 
-          var data = Object.assign({}, lodash_omit(meteor, ['subscribe', 'data']), meteor.data);
-
           // Reactive data
-          if (data) {
-            for (var _key in data) {
-              if (_key.charAt(0) !== '$') {
-                this.$addMeteorData(_key, data[_key]);
-              }
+          for (var _key in meteor) {
+            if (_key.charAt(0) !== '$') {
+              this.$addMeteorData(_key, meteor[_key]);
             }
           }
         }
@@ -1789,6 +1794,14 @@ var index = {
         if (this.$options.meteor && !this.$options.meteor.$lazy) {
           launch.call(this);
         }
+
+        // Computed props
+        var computed = this._computedWatchers;
+        if (computed) {
+          for (var key in computed) {
+            this.$addComputed(key, computed[key]);
+          }
+        }
       },
 
 
@@ -1797,7 +1810,7 @@ var index = {
       },
 
       methods: {
-        $subscribe: function $subscribe() {
+        $_subscribe: function $_subscribe() {
           var _this2 = this;
 
           for (var _len = arguments.length, args = Array(_len), _key2 = 0; _key2 < _len; _key2++) {
@@ -1834,6 +1847,34 @@ var index = {
             throw new Error('You must provide the publication name to $subscribe.');
           }
         },
+        $subscribe: function $subscribe(key, options) {
+          var _this3 = this;
+
+          var handle = void 0,
+              unwatch = void 0;
+          var subscribe = function subscribe(params) {
+            handle = _this3.$_subscribe.apply(_this3, [key].concat(toConsumableArray(params)));
+          };
+
+          if (typeof options === 'function') {
+            if (isServer) {
+              subscribe(options.bind(this)());
+            } else {
+              unwatch = this.$watch(options, function (params) {
+                subscribe(params);
+              }, {
+                immediate: true
+              });
+            }
+          } else {
+            subscribe(options);
+          }
+
+          return function () {
+            if (unwatch) unwatch();
+            if (handle) _this3.$stopHandle(handle);
+          };
+        },
         $autorun: function $autorun(reactiveFunction) {
           var handle = Tracker.autorun(reactiveFunction);
           this._trackerHandles.push(handle);
@@ -1863,34 +1904,6 @@ var index = {
           this._trackerHandles = null;
           this._meteorActive = false;
         },
-        $addReactiveSub: function $addReactiveSub(key, options) {
-          var _this3 = this;
-
-          var handle = void 0,
-              unwatch = void 0;
-          var subscribe = function subscribe(params) {
-            handle = _this3.$subscribe.apply(_this3, [key].concat(toConsumableArray(params)));
-          };
-
-          if (typeof options === 'function') {
-            if (isServer) {
-              subscribe(options.bind(this)());
-            } else {
-              unwatch = this.$watch(options, function (params) {
-                subscribe(params);
-              }, {
-                immediate: true
-              });
-            }
-          } else {
-            subscribe(options);
-          }
-
-          return function () {
-            if (unwatch) unwatch();
-            if (handle) _this3.$stopHandle(handle);
-          };
-        },
         $addMeteorData: function $addMeteorData(key, func) {
           var _this4 = this;
 
@@ -1914,12 +1927,7 @@ var index = {
 
           // Function run
           var setResult = function setResult(result) {
-            if (result && typeof result.fetch === 'function') {
-              result = result.fetch();
-            }
-            if (Vue.config.meteor.freeze) {
-              result = Object.freeze(result);
-            }
+            result = getResult(result);
             set$1(_this4.$data.$meteor.data, key, result);
           };
 
@@ -1946,6 +1954,42 @@ var index = {
           return function () {
             unwatch();
             unautorun();
+          };
+        },
+        $addComputed: function $addComputed(key, watcher) {
+          var _this5 = this;
+
+          var computation = void 0,
+              autorunMethod = void 0;
+          var autorun = function autorun(cb) {
+            if (!computation) {
+              // Update from Meteor
+              var dirty = false;
+              computation = autorunMethod(function (computation) {
+                dirty = true;
+                watcher.value = getResult(cb.call(_this5));
+                watcher.deps.forEach(function (dep) {
+                  return dep.notify();
+                });
+                dirty = false;
+              });
+              // Update from Vue (override)
+              watcher.update = function () {
+                if (!dirty) {
+                  computation.invalidate();
+                }
+              };
+            }
+            return watcher.value;
+          };
+          // Override getter to expose $autorun
+          var func = watcher.getter;
+          watcher.getter = function () {
+            autorunMethod = _this5.$autorun;
+            _this5.$autorun = autorun;
+            var result = func.call(_this5, _this5);
+            _this5.$autorun = autorunMethod;
+            return result;
           };
         }
       }
