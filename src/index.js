@@ -50,6 +50,16 @@ export default {
       }, merge(toData, fromData))
     }
 
+    function getResult (result) {
+      if (result && typeof result.fetch === 'function') {
+        result = result.fetch()
+      }
+      if (Vue.config.meteor.freeze) {
+        result = Object.freeze(result)
+      }
+      return result
+    }
+
     function prepare () {
       this._trackerHandles = []
       this._subsAutorun = {}
@@ -75,24 +85,16 @@ export default {
 
         if (!isServer || ssr) {
           // Subscriptions
-          if (meteor.subscribe || meteor.$subscribe) {
-            const subscribeOptions = Object.assign({}, meteor.subscribe, meteor.$subscribe)
-            for (let key in subscribeOptions) {
-              this.$addReactiveSub(key, subscribeOptions[key])
+          if (meteor.$subscribe) {
+            for (let key in meteor.$subscribe) {
+              this.$subscribe(key, meteor.$subscribe[key])
             }
           }
 
-          const data = Object.assign({}, omit(meteor, [
-            'subscribe',
-            'data',
-          ]), meteor.data)
-
           // Reactive data
-          if (data) {
-            for (let key in data) {
-              if (key.charAt(0) !== '$') {
-                this.$addMeteorData(key, data[key])
-              }
+          for (let key in meteor) {
+            if (key.charAt(0) !== '$') {
+              this.$addMeteorData(key, meteor[key])
             }
           }
         }
@@ -121,6 +123,14 @@ export default {
         if (this.$options.meteor && !this.$options.meteor.$lazy) {
           launch.call(this)
         }
+
+        // Computed props
+        const computed = this._computedWatchers
+        if (computed) {
+          for (let key in computed) {
+            this.$addComputed(key, computed[key])
+          }
+        }
       },
 
       destroyed: function () {
@@ -128,7 +138,7 @@ export default {
       },
 
       methods: {
-        $subscribe (...args) {
+        $_subscribe (...args) {
           if (args.length > 0) {
             const key = args[0]
             const oldSub = this._subs[key]
@@ -157,6 +167,32 @@ export default {
             // }
           } else {
             throw new Error('You must provide the publication name to $subscribe.')
+          }
+        },
+
+        $subscribe (key, options) {
+          let handle, unwatch
+          let subscribe = params => {
+            handle = this.$_subscribe(key, ...params)
+          }
+
+          if (typeof options === 'function') {
+            if (isServer) {
+              subscribe(options.bind(this)())
+            } else {
+              unwatch = this.$watch(options, params => {
+                subscribe(params)
+              }, {
+                immediate: true,
+              })
+            }
+          } else {
+            subscribe(options)
+          }
+
+          return () => {
+            if (unwatch) unwatch()
+            if (handle) this.$stopHandle(handle)
           }
         },
 
@@ -193,32 +229,6 @@ export default {
           this._meteorActive = false
         },
 
-        $addReactiveSub (key, options) {
-          let handle, unwatch
-          let subscribe = params => {
-            handle = this.$subscribe(key, ...params)
-          }
-
-          if (typeof options === 'function') {
-            if (isServer) {
-              subscribe(options.bind(this)())
-            } else {
-              unwatch = this.$watch(options, params => {
-                subscribe(params)
-              }, {
-                immediate: true,
-              })
-            }
-          } else {
-            subscribe(options)
-          }
-
-          return () => {
-            if (unwatch) unwatch()
-            if (handle) this.$stopHandle(handle)
-          }
-        },
-
         $addMeteorData (key, func) {
           if (typeof func === 'function') {
             func = func.bind(this)
@@ -238,12 +248,7 @@ export default {
 
           // Function run
           const setResult = result => {
-            if (result && typeof result.fetch === 'function') {
-              result = result.fetch()
-            }
-            if (Vue.config.meteor.freeze) {
-              result = Object.freeze(result)
-            }
+            result = getResult(result)
             set(this.$data.$meteor.data, key, result)
           }
 
@@ -268,6 +273,38 @@ export default {
           return () => {
             unwatch()
             unautorun()
+          }
+        },
+
+        $addComputed (key, watcher) {
+          let computation, autorunMethod
+          const autorun = (cb) => {
+            if (!computation) {
+              // Update from Meteor
+              let dirty = false
+              computation = autorunMethod(computation => {
+                dirty = true
+                watcher.value = getResult(cb.call(this))
+                watcher.deps.forEach(dep => dep.notify())
+                dirty = false
+              })
+              // Update from Vue (override)
+              watcher.update = () => {
+                if (!dirty) {
+                  computation.invalidate()
+                }
+              }
+            }
+            return watcher.value
+          }
+          // Override getter to expose $autorun
+          const func = watcher.getter
+          watcher.getter = () => {
+            autorunMethod = this.$autorun
+            this.$autorun = autorun
+            const result = func.call(this, this)
+            this.$autorun = autorunMethod
+            return result
           }
         },
       },

@@ -34,7 +34,7 @@ export default {
     updateSub () {
       if (this.$_unsub) this.$_unsub()
       const parameters = typeof this.parameters === 'function' ? this.parameters : () => this.parameters || []
-      this.$_unsub = this.$addReactiveSub(this.name, parameters)
+      this.$_unsub = this.$subscribe(this.name, parameters)
     },
   },
 
