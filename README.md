@@ -7,6 +7,14 @@ Declarative subscriptions and meteor reactive data (subscriptions, collections, 
 
 [Example project](https://github.com/Akryum/meteor-vue-example)
 
+<p>
+  <a href="https://www.patreon.com/akryum" target="_blank">
+    <img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patreon">
+  </a>
+</p>
+
+<br>
+
 ## Installation
 
 ```
