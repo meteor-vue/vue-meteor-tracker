@@ -217,15 +217,17 @@ export default {
         },
 
         $stopMeteor () {
-          // Stop all reactivity when view is destroyed.
-          this._trackerHandles.forEach((tracker) => {
-            try {
-              tracker.stop()
-            } catch (e) {
-              console.error(e, tracker)
-            }
-          })
-          this._trackerHandles = null
+          if (this._meteorActive) {
+            // Stop all reactivity when view is destroyed.
+            this._trackerHandles.forEach((tracker) => {
+              try {
+                tracker.stop()
+              } catch (e) {
+                console.error(e, tracker)
+              }
+            })
+            this._trackerHandles = null
+          }
           this._meteorActive = false
         },
 
