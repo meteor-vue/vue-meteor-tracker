@@ -1893,15 +1893,17 @@ var index = {
           }
         },
         $stopMeteor: function $stopMeteor() {
-          // Stop all reactivity when view is destroyed.
-          this._trackerHandles.forEach(function (tracker) {
-            try {
-              tracker.stop();
-            } catch (e) {
-              console.error(e, tracker);
-            }
-          });
-          this._trackerHandles = null;
+          if (this._meteorActive) {
+            // Stop all reactivity when view is destroyed.
+            this._trackerHandles.forEach(function (tracker) {
+              try {
+                tracker.stop();
+              } catch (e) {
+                console.error(e, tracker);
+              }
+            });
+            this._trackerHandles = null;
+          }
           this._meteorActive = false;
         },
         $addMeteorData: function $addMeteorData(key, func) {
