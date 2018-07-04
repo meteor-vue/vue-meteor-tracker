@@ -70,13 +70,13 @@ export default {
 ```
 
 
-You can also use the `$subscribe(name, ...params)` method in you component code:
+You can also use the `$subscribe(name, params)` method in you component code:
 
 
 ```js
 mounted () {
   // Subscribes to the 'threads' publication with two parameters
-  this.$subscribe('thread', 'new', 10)
+  this.$subscribe('thread', ['new', 10])
 }
 ```
 
