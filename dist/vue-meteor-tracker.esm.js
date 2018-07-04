@@ -1762,7 +1762,9 @@ var index = {
 
           // Reactive data
           for (var _key in meteor) {
-            if (_key.charAt(0) !== '$') {
+            // should not add method starting with $
+            // or called subscribe
+            if (_key.charAt(0) !== '$' && _key !== 'subscribe') {
               this.$addMeteorData(_key, meteor[_key]);
             }
           }
@@ -1815,6 +1817,7 @@ var index = {
             var key = args[0];
             var oldSub = this._subs[key];
             var handle = Vue.config.meteor.subscribe.apply(this, args);
+            if (!this._trackerHandles) this._trackerHandles = []; // if undefined, init as empty array
             this._trackerHandles.push(handle);
             this._subs[key] = handle;
 
@@ -1907,7 +1910,7 @@ var index = {
             throw Error('Meteor data \'' + key + '\': You must provide a function which returns the result.');
           }
 
-          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || hasProperty(this, key)) {
+          if (hasProperty(this.$data, key) || hasProperty(this.$props, key)) {
             throw Error('Meteor data \'' + key + '\': Property already used in the component data, props or other.');
           }
 
