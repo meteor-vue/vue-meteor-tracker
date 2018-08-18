@@ -218,7 +218,7 @@ export default {
 
         $stopMeteor () {
           // Stop all reactivity when view is destroyed.
-          this._trackerHandles.forEach((tracker) => {
+          this._trackerHandles && this._trackerHandles.forEach((tracker) => {
             try {
               tracker.stop()
             } catch (e) {
