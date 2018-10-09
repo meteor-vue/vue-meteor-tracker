@@ -37,16 +37,14 @@ export default {
       if (!fromVal) return toVal
 
       const toData = Object.assign({}, omit(toVal, [
-        'subscribe',
-        'data',
+        '$subscribe',
       ]), toVal.data)
       const fromData = Object.assign({}, omit(fromVal, [
-        'subscribe',
-        'data',
+        '$subscribe',
       ]), fromVal.data)
 
       return Object.assign({
-        subscribe: merge(toVal.subscribe, fromVal.subscribe),
+        $subscribe: merge(toVal.$subscribe, fromVal.$subscribe),
       }, merge(toData, fromData))
     }
 
