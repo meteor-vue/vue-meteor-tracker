@@ -1518,7 +1518,7 @@ var CMeteorData = {
 
   render: function render(h) {
     var result = this.$scopedSlots.default({
-      data: this.meteorData
+      data: this.$data.$meteor.data.meteorData
     });
     if (Array.isArray(result)) {
       result = result.concat(this.$slots.default);
@@ -1707,11 +1707,11 @@ var index = {
       if (!toVal) return fromVal;
       if (!fromVal) return toVal;
 
-      var toData = Object.assign({}, lodash_omit(toVal, ['subscribe', 'data']), toVal.data);
-      var fromData = Object.assign({}, lodash_omit(fromVal, ['subscribe', 'data']), fromVal.data);
+      var toData = Object.assign({}, lodash_omit(toVal, ['$subscribe']), toVal.data);
+      var fromData = Object.assign({}, lodash_omit(fromVal, ['$subscribe']), fromVal.data);
 
       return Object.assign({
-        subscribe: merge(toVal.subscribe, fromVal.subscribe)
+        $subscribe: merge(toVal.$subscribe, fromVal.$subscribe)
       }, merge(toData, fromData));
     };
 
@@ -1725,16 +1725,56 @@ var index = {
       return result;
     }
 
-    function prepare() {
+    function firstPrepare() {
       var _this = this;
 
-      this._trackerHandles = [];
-      this._subsAutorun = {};
-      this._subs = {};
-
+      prepare.call(this);
       Object.defineProperty(this, '$subReady', {
         get: function get$$1() {
           return _this.$data.$meteor.subs;
+        },
+        enumerable: true,
+        configurable: true
+      });
+      proxyData.call(this);
+    }
+
+    function prepare() {
+      this._trackerHandles = [];
+      this._subsAutorun = {};
+      this._subs = {};
+    }
+
+    function proxyData() {
+      var initData = this.$_meteorInitData = {};
+      var meteor = this.$options.meteor;
+
+      if (meteor) {
+        // Reactive data
+        for (var key in meteor) {
+          if (key.charAt(0) !== '$') {
+            proxyKey.call(this, key);
+
+            var func = meteor[key];
+
+            if (meteor.$lazy && typeof func === 'function') {
+              initData[key] = getResult(func.call(this));
+            }
+          }
+        }
+      }
+    }
+
+    function proxyKey(key) {
+      var _this2 = this;
+
+      if (hasProperty(this, key)) {
+        throw Error('Meteor data \'' + key + '\': Property already used in the component methods or prototype.');
+      }
+
+      Object.defineProperty(this, key, {
+        get: function get$$1() {
+          return _this2.$data.$meteor.data[key];
         },
         enumerable: true,
         configurable: true
@@ -1774,15 +1814,15 @@ var index = {
       data: function data() {
         return {
           $meteor: {
-            data: {},
+            data: this.$_meteorInitData,
             subs: {}
           }
         };
       }
     }, vueVersion === '1' ? {
-      init: prepare
+      init: firstPrepare
     } : {}, vueVersion === '2' ? {
-      beforeCreate: prepare
+      beforeCreate: firstPrepare
     } : {}, {
       created: function created() {
         if (this.$options.meteor && !this.$options.meteor.$lazy) {
@@ -1805,7 +1845,7 @@ var index = {
 
       methods: {
         $_subscribe: function $_subscribe() {
-          var _this2 = this;
+          var _this3 = this;
 
           for (var _len = arguments.length, args = Array(_len), _key2 = 0; _key2 < _len; _key2++) {
             args[_key2] = arguments[_key2];
@@ -1826,10 +1866,10 @@ var index = {
               }
               var autorun = this.$autorun(function () {
                 var ready = handle.ready();
-                set$1(_this2.$data.$meteor.subs, key, ready);
+                set$1(_this3.$data.$meteor.subs, key, ready);
                 // Wait for the new subscription to be ready before stoping the old one
                 if (ready && oldSub) {
-                  _this2.$stopHandle(oldSub);
+                  _this3.$stopHandle(oldSub);
                 }
               });
               this._subsAutorun[key] = autorun;
@@ -1842,12 +1882,12 @@ var index = {
           }
         },
         $subscribe: function $subscribe(key, options) {
-          var _this3 = this;
+          var _this4 = this;
 
           var handle = void 0,
               unwatch = void 0;
           var subscribe = function subscribe(params) {
-            handle = _this3.$_subscribe.apply(_this3, [key].concat(toConsumableArray(params)));
+            handle = _this4.$_subscribe.apply(_this4, [key].concat(toConsumableArray(params)));
           };
 
           if (typeof options === 'function') {
@@ -1866,7 +1906,7 @@ var index = {
 
           return function () {
             if (unwatch) unwatch();
-            if (handle) _this3.$stopHandle(handle);
+            if (handle) _this4.$stopHandle(handle);
           };
         },
         $autorun: function $autorun(reactiveFunction) {
@@ -1883,6 +1923,7 @@ var index = {
         },
         $startMeteor: function $startMeteor() {
           if (!this._meteorActive) {
+            prepare.call(this);
             launch.call(this);
           }
         },
@@ -1892,14 +1933,16 @@ var index = {
             try {
               tracker.stop();
             } catch (e) {
-              console.error(e, tracker);
+              if (Meteor.isDevelopment) console.error(e, tracker);
             }
           });
           this._trackerHandles = null;
           this._meteorActive = false;
         },
         $addMeteorData: function $addMeteorData(key, func) {
-          var _this4 = this;
+          var _this5 = this;
+
+          var proxy = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
           if (typeof func === 'function') {
             func = func.bind(this);
@@ -1907,22 +1950,18 @@ var index = {
             throw Error('Meteor data \'' + key + '\': You must provide a function which returns the result.');
           }
 
-          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || hasProperty(this, key)) {
-            throw Error('Meteor data \'' + key + '\': Property already used in the component data, props or other.');
-          }
+          if (proxy) {
+            if (hasProperty(this.$data, key) || hasProperty(this.$props, key)) {
+              throw Error('Meteor data \'' + key + '\': Property already used in the component data or props.');
+            }
 
-          Object.defineProperty(this, key, {
-            get: function get$$1() {
-              return _this4.$data.$meteor.data[key];
-            },
-            enumerable: true,
-            configurable: true
-          });
+            proxyKey.call(this, key);
+          }
 
           // Function run
           var setResult = function setResult(result) {
             result = getResult(result);
-            set$1(_this4.$data.$meteor.data, key, result);
+            set$1(_this5.$data.$meteor.data, key, result);
           };
 
           // Vue autorun
@@ -1938,7 +1977,7 @@ var index = {
             setResult(result);
           });
           var unautorun = function unautorun() {
-            if (computation) _this4.$stopHandle(computation);
+            if (computation) _this5.$stopHandle(computation);
           };
           // Update from Vue (override)
           watcher.update = function () {
@@ -1951,8 +1990,9 @@ var index = {
           };
         },
         $addComputed: function $addComputed(key, watcher) {
-          var _this5 = this;
+          var _this6 = this;
 
+          if (watcher.getter.vuex) return;
           var computation = void 0,
               autorunMethod = void 0;
           var autorun = function autorun(cb) {
@@ -1961,10 +2001,66 @@ var index = {
               var dirty = false;
               computation = autorunMethod(function (computation) {
                 dirty = true;
-                watcher.value = getResult(cb.call(_this5));
-                watcher.deps.forEach(function (dep) {
-                  return dep.notify();
-                });
+                watcher.value = getResult(cb.call(_this6));
+                // Call watcher callback
+                var get$$1 = watcher.get;
+                watcher.get = function () {
+                  return watcher.value;
+                };
+                watcher.run();
+                watcher.get = get$$1;
+                // Notify watchers subscribed in dependencies
+                var _iteratorNormalCompletion = true;
+                var _didIteratorError = false;
+                var _iteratorError = undefined;
+
+                try {
+                  for (var _iterator = watcher.deps[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var dep = _step.value;
+
+                    var subs = dep.subs.slice();
+                    var _iteratorNormalCompletion2 = true;
+                    var _didIteratorError2 = false;
+                    var _iteratorError2 = undefined;
+
+                    try {
+                      for (var _iterator2 = subs[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                        var sub = _step2.value;
+
+                        if (sub.id !== watcher.id) {
+                          sub.update();
+                        }
+                      }
+                    } catch (err) {
+                      _didIteratorError2 = true;
+                      _iteratorError2 = err;
+                    } finally {
+                      try {
+                        if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                          _iterator2.return();
+                        }
+                      } finally {
+                        if (_didIteratorError2) {
+                          throw _iteratorError2;
+                        }
+                      }
+                    }
+                  }
+                } catch (err) {
+                  _didIteratorError = true;
+                  _iteratorError = err;
+                } finally {
+                  try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                      _iterator.return();
+                    }
+                  } finally {
+                    if (_didIteratorError) {
+                      throw _iteratorError;
+                    }
+                  }
+                }
+
                 dirty = false;
               });
               // Update from Vue (override)
@@ -1977,14 +2073,20 @@ var index = {
             return watcher.value;
           };
           // Override getter to expose $autorun
-          var func = watcher.getter;
+          var getter = watcher.getter;
           watcher.getter = function () {
-            autorunMethod = _this5.$autorun;
-            _this5.$autorun = autorun;
-            var result = func.call(_this5, _this5);
-            _this5.$autorun = autorunMethod;
+            autorunMethod = _this6.$autorun;
+            _this6.$autorun = autorun;
+            var result = getter.call(_this6, _this6);
+            _this6.$autorun = autorunMethod;
             return result;
           };
+          // If watcher was created before the computed property
+          // (for example because of a $watch)
+          // we update the result with the getter override
+          if (watcher.value instanceof Tracker.Computation) {
+            watcher.run();
+          }
         }
       }
     }));
