@@ -63,15 +63,21 @@ export default {
       this._subsAutorun = {}
       this._subs = {}
 
-      Object.defineProperty(this, '$subReady', {
-        get: () => this.$data.$meteor.subs,
-        enumerable: true,
-        configurable: true,
-      })
+      // First launch
+      if (this._meteorLaunch == null) {
+        this._meteorLaunch = 0
+
+        Object.defineProperty(this, '$subReady', {
+          get: () => this.$data.$meteor.subs,
+          enumerable: true,
+          configurable: true,
+        })
+      }
     }
 
     function launch () {
       this._meteorActive = true
+      this._meteorLaunch++
 
       let meteor = this.$options.meteor
 
@@ -210,6 +216,7 @@ export default {
 
         $startMeteor () {
           if (!this._meteorActive) {
+            prepare.call(this)
             launch.call(this)
           }
         },
@@ -220,7 +227,7 @@ export default {
             try {
               tracker.stop()
             } catch (e) {
-              console.error(e, tracker)
+              if (Meteor.isDevelopment) console.error(e, tracker)
             }
           })
           this._trackerHandles = null
@@ -234,7 +241,7 @@ export default {
             throw Error(`Meteor data '${key}': You must provide a function which returns the result.`)
           }
 
-          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || hasProperty(this, key)) {
+          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || (hasProperty(this, key) && this._meteorLaunch === 1)) {
             throw Error(`Meteor data '${key}': Property already used in the component data, props or other.`)
           }
 
