@@ -1929,7 +1929,7 @@ var index = {
         },
         $stopMeteor: function $stopMeteor() {
           // Stop all reactivity when view is destroyed.
-          this._trackerHandles.forEach(function (tracker) {
+          this._trackerHandles && this._trackerHandles.forEach(function (tracker) {
             try {
               tracker.stop();
             } catch (e) {
