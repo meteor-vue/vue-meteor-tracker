@@ -26,7 +26,7 @@ export default {
 
   render (h) {
     let result = this.$scopedSlots.default({
-      data: this.meteorData,
+      data: this.$data.$meteor.data.meteorData,
     })
     if (Array.isArray(result)) {
       result = result.concat(this.$slots.default)

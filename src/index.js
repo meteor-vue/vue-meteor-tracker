@@ -37,16 +37,14 @@ export default {
       if (!fromVal) return toVal
 
       const toData = Object.assign({}, omit(toVal, [
-        'subscribe',
-        'data',
+        '$subscribe',
       ]), toVal.data)
       const fromData = Object.assign({}, omit(fromVal, [
-        'subscribe',
-        'data',
+        '$subscribe',
       ]), fromVal.data)
 
       return Object.assign({
-        subscribe: merge(toVal.subscribe, fromVal.subscribe),
+        $subscribe: merge(toVal.$subscribe, fromVal.$subscribe),
       }, merge(toData, fromData))
     }
 
@@ -60,13 +58,49 @@ export default {
       return result
     }
 
+    function firstPrepare () {
+      prepare.call(this)
+      Object.defineProperty(this, '$subReady', {
+        get: () => this.$data.$meteor.subs,
+        enumerable: true,
+        configurable: true,
+      })
+      proxyData.call(this)
+    }
+
     function prepare () {
       this._trackerHandles = []
       this._subsAutorun = {}
       this._subs = {}
+    }
 
-      Object.defineProperty(this, '$subReady', {
-        get: () => this.$data.$meteor.subs,
+    function proxyData () {
+      const initData = this.$_meteorInitData = {}
+      let meteor = this.$options.meteor
+
+      if (meteor) {
+        // Reactive data
+        for (let key in meteor) {
+          if (key.charAt(0) !== '$') {
+            proxyKey.call(this, key)
+
+            const func = meteor[key]
+
+            if (meteor.$lazy && typeof func === 'function') {
+              initData[key] = getResult(func.call(this))
+            }
+          }
+        }
+      }
+    }
+
+    function proxyKey (key) {
+      if (hasProperty(this, key)) {
+        throw Error(`Meteor data '${key}': Property already used in the component methods or prototype.`)
+      }
+
+      Object.defineProperty(this, key, {
+        get: () => this.$data.$meteor.data[key],
         enumerable: true,
         configurable: true,
       })
@@ -105,18 +139,18 @@ export default {
       data () {
         return {
           $meteor: {
-            data: {},
+            data: this.$_meteorInitData,
             subs: {},
           },
         }
       },
 
       ...vueVersion === '1' ? {
-        init: prepare,
+        init: firstPrepare,
       } : {},
 
       ...vueVersion === '2' ? {
-        beforeCreate: prepare,
+        beforeCreate: firstPrepare,
       } : {},
 
       created () {
@@ -212,6 +246,7 @@ export default {
 
         $startMeteor () {
           if (!this._meteorActive) {
+            prepare.call(this)
             launch.call(this)
           }
         },
@@ -223,7 +258,7 @@ export default {
               try {
                 tracker.stop()
               } catch (e) {
-                console.error(e, tracker)
+                if (Meteor.isDevelopment) console.error(e, tracker)
               }
             })
           }
@@ -231,22 +266,20 @@ export default {
           this._meteorActive = false
         },
 
-        $addMeteorData (key, func) {
+        $addMeteorData (key, func, proxy = false) {
           if (typeof func === 'function') {
             func = func.bind(this)
           } else {
             throw Error(`Meteor data '${key}': You must provide a function which returns the result.`)
           }
 
-          if (hasProperty(this.$data, key) || hasProperty(this.$props, key) || hasProperty(this, key)) {
-            throw Error(`Meteor data '${key}': Property already used in the component data, props or other.`)
-          }
+          if (proxy) {
+            if (hasProperty(this.$data, key) || hasProperty(this.$props, key)) {
+              throw Error(`Meteor data '${key}': Property already used in the component data or props.`)
+            }
 
-          Object.defineProperty(this, key, {
-            get: () => this.$data.$meteor.data[key],
-            enumerable: true,
-            configurable: true,
-          })
+            proxyKey.call(this, key)
+          }
 
           // Function run
           const setResult = result => {
@@ -279,6 +312,7 @@ export default {
         },
 
         $addComputed (key, watcher) {
+          if (watcher.getter.vuex) return
           let computation, autorunMethod
           const autorun = (cb) => {
             if (!computation) {
@@ -287,7 +321,20 @@ export default {
               computation = autorunMethod(computation => {
                 dirty = true
                 watcher.value = getResult(cb.call(this))
-                watcher.deps.forEach(dep => dep.notify())
+                // Call watcher callback
+                const get = watcher.get
+                watcher.get = () => watcher.value
+                watcher.run()
+                watcher.get = get
+                // Notify watchers subscribed in dependencies
+                for (const dep of watcher.deps) {
+                  const subs = dep.subs.slice()
+                  for (const sub of subs) {
+                    if (sub.id !== watcher.id) {
+                      sub.update()
+                    }
+                  }
+                }
                 dirty = false
               })
               // Update from Vue (override)
@@ -300,13 +347,19 @@ export default {
             return watcher.value
           }
           // Override getter to expose $autorun
-          const func = watcher.getter
+          const getter = watcher.getter
           watcher.getter = () => {
             autorunMethod = this.$autorun
             this.$autorun = autorun
-            const result = func.call(this, this)
+            const result = getter.call(this, this)
             this.$autorun = autorunMethod
             return result
+          }
+          // If watcher was created before the computed property
+          // (for example because of a $watch)
+          // we update the result with the getter override
+          if (watcher.value instanceof Tracker.Computation) {
+            watcher.run()
           }
         },
       },
