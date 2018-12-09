@@ -253,7 +253,7 @@ export default {
 
         $stopMeteor () {
           // Stop all reactivity when view is destroyed.
-          if(Array.isArray(this._trackerHandles)) { // sometimes this._trackerHandles is null and we want skip this step
+          if (Array.isArray(this._trackerHandles)) { // sometimes this._trackerHandles is null and we want skip this step
             this._trackerHandles.forEach((tracker) => {
               try {
                 tracker.stop()
