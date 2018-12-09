@@ -1740,7 +1740,7 @@ var index = {
           return _this.$data.$meteor.subs;
         },
         enumerable: true,
-        configurable: true
+        configurable: false
       });
       proxyData.call(this);
     }
@@ -1935,13 +1935,16 @@ var index = {
         },
         $stopMeteor: function $stopMeteor() {
           // Stop all reactivity when view is destroyed.
-          this._trackerHandles.forEach(function (tracker) {
-            try {
-              tracker.stop();
-            } catch (e) {
-              if (Meteor.isDevelopment) console.error(e, tracker);
-            }
-          });
+          if (Array.isArray(this._trackerHandles)) {
+            // sometimes this._trackerHandles is null and we want skip this step
+            this._trackerHandles.forEach(function (tracker) {
+              try {
+                tracker.stop();
+              } catch (e) {
+                if (Meteor.isDevelopment) console.error(e, tracker);
+              }
+            });
+          }
           this._trackerHandles = null;
           this._meteorActive = false;
         },
