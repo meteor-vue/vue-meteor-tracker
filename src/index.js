@@ -63,7 +63,7 @@ export default {
       Object.defineProperty(this, '$subReady', {
         get: () => this.$data.$meteor.subs,
         enumerable: true,
-        configurable: true,
+        configurable: false,
       })
       proxyData.call(this)
     }
