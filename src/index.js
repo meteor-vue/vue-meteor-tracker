@@ -4,7 +4,17 @@ import CMeteorData from './components/MeteorData'
 import CMeteorSub from './components/MeteorSub'
 
 function defaultSubscription (...args) {
-  return Meteor.subscribe(...args)
+  const args = [...subArgs];
+    let handler = Meteor;
+
+    if (args[args.length - 1].connection) {
+      handler = args[args.length - 1].connection;
+      delete args[args.length - 1].connection;
+
+      if (Object.keys(args[args.length - 1]).length === 0) args.splice(args.length - 1, 1);
+    }
+
+    return handler.subscribe(...args);
 }
 
 function hasProperty (holder, key) {
