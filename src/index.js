@@ -5,13 +5,14 @@ import CMeteorSub from './components/MeteorSub'
 
 function defaultSubscription (...args) {
   const args = [...subArgs];
-    let handler = Meteor;
+  let handler = Meteor;
+  const lastArgumentIndex = args.length - 1;
 
-    if (args[args.length - 1].connection) {
-      handler = args[args.length - 1].connection;
-      delete args[args.length - 1].connection;
+    if (args[lastArgumentIndex].connection) {
+      handler = args[lastArgumentIndex].connection;
+      delete args[lastArgumentIndex].connection;
 
-      if (Object.keys(args[args.length - 1]).length === 0) args.splice(args.length - 1, 1);
+      if (Object.keys(args[lastArgumentIndex]).length === 0) args.splice(args.length - 1, 1);
     }
 
     return handler.subscribe(...args);
