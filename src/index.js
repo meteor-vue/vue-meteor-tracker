@@ -287,14 +287,24 @@ export default {
             set(this.$data.$meteor.data, key, result)
           }
 
-          // Vue autorun
-          const unwatch = this.$watch(func, noop)
-          const watcher = this._watchers.find(w => w.getter === func)
+          let unwatch, watcher
 
           // Meteor autorun
-          let computation = this.$autorun(() => {
-            // Vue watcher deps are also-rebuilt
-            const result = watcher.get()
+          const computation = this.$autorun((_computation) => {
+            let result
+
+            if (_computation.firstRun) {
+              // Initialize Vue Watcher, func will be executed by this.$watch().
+              // It is important to place it here so the Tracker computation can
+              // be initialized with the same function execution.
+              unwatch = this.$watch(func, noop)
+              watcher = this._watchers.find(w => w.getter === func)
+              result = watcher.value
+            } else {
+              result = watcher.get()
+            }
+
+            // Vue watcher deps are also rebuilt
             setResult(result)
           })
           const unautorun = () => {
