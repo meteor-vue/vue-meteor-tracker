@@ -182,6 +182,9 @@ export default {
                 stop () {},
               }
             } else { */
+              if (!this._trackerHandles) {
+                throw new Error('$subscribe called on destroyed or uninitialized component');
+              }
               const key = args[0];
               const oldSub = this._subs[key]
               let handle = Vue.config.meteor.subscribe.apply(this, args);
