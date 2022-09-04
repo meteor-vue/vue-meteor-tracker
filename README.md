@@ -276,7 +276,7 @@ async function insertLink () {
 
 To keep track of pending, error and result state with reactive variables, you can use `useMethod`:
 
-```js
+```ts
 import { useMethod } from 'vue-meteor-tracker'
 import { LinksCollection } from '/imports/api/links'
 
