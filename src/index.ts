@@ -141,7 +141,7 @@ export {
   setupOnlySubscribe as subscribe,
 }
 
-export function call<
+export function callMethod<
   TResult = any
 > (methodName: string, ...args: any[]): Promise<TResult> {
   return new Promise<TResult>((resolve, reject) => {
@@ -167,7 +167,7 @@ export function useMethod <TArgs extends any[] = any[], TResult = any> (name: st
     pending.value = true
     error.value = undefined
     try {
-      result.value = await call(name, ...args)
+      result.value = await callMethod(name, ...args)
     } catch (e) {
       error.value = e as Error
     } finally {
