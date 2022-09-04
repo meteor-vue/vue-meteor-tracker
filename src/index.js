@@ -75,20 +75,13 @@ export default {
     }
 
     function proxyData () {
-      const initData = this.$_meteorInitData = {}
-      let meteor = this.$options.meteor
+      const meteor = this.$options.meteor
 
       if (meteor) {
         // Reactive data
         for (let key in meteor) {
           if (key.charAt(0) !== '$') {
             proxyKey.call(this, key)
-
-            const func = meteor[key]
-
-            if (meteor.$lazy && typeof func === 'function') {
-              initData[key] = getResult(func.call(this))
-            }
           }
         }
       }
@@ -139,7 +132,7 @@ export default {
       data () {
         return {
           $meteor: {
-            data: this.$_meteorInitData,
+            data: {},
             subs: {},
           },
         }
