@@ -1,73 +1,38 @@
 # Vue integration for Meteor
 
 [![npm](https://img.shields.io/npm/v/vue-meteor-tracker.svg) ![npm](https://img.shields.io/npm/dm/vue-meteor-tracker.svg)](https://www.npmjs.com/package/vue-meteor-tracker)
-[![vue1](https://img.shields.io/badge/vue-1.x-brightgreen.svg) ![vue2](https://img.shields.io/badge/vue-2.x-brightgreen.svg)](https://vuejs.org/)
+[![vue3](https://img.shields.io/badge/vue-3.x-brightgreen.svg) ![vue2.7](https://img.shields.io/badge/vue-2.7-brightgreen.svg)](https://vuejs.org/)
 
-Declarative subscriptions and meteor reactive data (subscriptions, collections, tracker...)
-
-[Example project](https://github.com/Akryum/meteor-vue-example)
-
-<p>
-  <a href="https://www.patreon.com/akryum" target="_blank">
-    <img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patreon">
-  </a>
-</p>
+Reactive subscriptions and data from Meteor for Vue components.
 
 ## Sponsors
 
-### Gold
+[Become a sponsor!](https://github.com/sponsors/Akryum)
+
+We are very grateful to all our sponsors for their support:
 
 <p align="center">
-  <a href="https://www.sumcumo.com/en/" target="_blank">
-    <img src="https://cdn.discordapp.com/attachments/258614093362102272/570728242399674380/logo-sumcumo.png" alt="sum.cumo logo" width="400px">
+  <a href="https://guillaume-chau.info/sponsors/" target="_blank">
+    <img src='https://akryum.netlify.app/sponsors.svg'/>
   </a>
 </p>
-
-### Silver
-
-<p align="center">
-  <a href="https://vueschool.io/" target="_blank">
-    <img src="https://vueschool.io/img/logo/vueschool_logo_multicolor.svg" alt="VueSchool logo" width="200px">
-  </a>
-
-  <a href="https://www.vuemastery.com/" target="_blank">
-    <img src="https://cdn.discordapp.com/attachments/258614093362102272/557267759130607630/Vue-Mastery-Big.png" alt="Vue Mastery logo" width="200px">
-  </a>
-</p>
-
-### Bronze
-
-<p align="center">
-  <a href="https://vuetifyjs.com" target="_blank">
-    <img src="https://cdn.discordapp.com/attachments/537832759985700914/537832771691872267/Horizontal_Logo_-_Dark.png" width="100">
-  </a>
-
-  <a href="https://www.frontenddeveloperlove.com/" target="_blank" title="Frontend Developer Love">
-    <img src="https://cdn.discordapp.com/attachments/258614093362102272/557267744249085953/frontend_love-logo.png" width="56">
-  </a>
-</p>
-
 
 <br>
 
 ## Installation
 
 ```
-meteor npm install --save vue-meteor-tracker
+meteor npm install --save vue-meteor-tracker@next
 ```
+
+## Options API
 
 Install the plugin into Vue:
 
 ```js
-import VueMeteorTracker from 'vue-meteor-tracker'
-Vue.use(VueMeteorTracker)
+import { VueMeteor } from 'vue-meteor-tracker'
+app.use(VueMeteor)
 ```
-
-*Note: if you are using the Meteor [akryum:vue](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue) package, you don't need to install the plugin.*
-
-**⚠️ You may need to polyfill `Object.assign`.**
-
-## Usage
 
 In your Vue component, add a `meteor` object :
 
@@ -131,6 +96,8 @@ You can also change the default subscription method by defining the `Vue.config.
 
 
 ```js
+import { config } from 'vue-meteor-tracker'
+
 // You can replace the default subcription function with your own
 // Here we replace the native subscribe() with a cached one
 // with the ccorcos:subs-cache package
@@ -139,7 +106,7 @@ const subsCache = new SubsCache({
   cacheLimit: -1
 })
 
-Vue.config.meteor.subscribe = function(...args) {
+config.subscribe = function(...args) {
   return subsCache.subscribe(...args)
 }
 ```
@@ -209,147 +176,137 @@ computed: {
 }
 ```
 
-### Activating and deactivating meteor data
+### Meteor Methods
 
-You can deactivate and activate again the meteor data on the component with `this.$startMeteor` and `this.$stopMeteor`:
+You can call a Meteor method with a promise using `callMethod`:
 
 ```js
-export default {
-  meteor: {
-    // ...
-  },
+import { callMethod } from 'vue-meteor-tracker'
 
+export default {
   methods: {
-    activate () {
-      this.$startMeteor()
-    },
-
-    deactivate () {
-      this.$stopMeteor()
-    }
-  }
-}
-```
-
-You can also prevent meteor data from starting automatically with `$lazy`:
-
-```js
-export default {
-  meteor: {
-    $lazy: true,
-    // ...
-  }
-}
-```
-
-### Freezing data
-
-This option will apply `Object.freeze` on the Meteor data to prevent Vue from setting up reactivity on it. This can improve the performance of Vue when rendering large collection lists for example. By default, this option is turned off.
-
-```js
-// Disable Vue reactivity on Meteor data
-Vue.config.meteor.freeze = true
-```
-
-### Without meteor option
-
-**Not currently SSR-friendly**
-
-With the special methods injected to the components, you can use reactive Meteor data without the `meteor` option:
-
-```js
-export default {
-  data () {
-    return {
-      limit: 5,
-      sort: true,
-    }
-  },
-
-  created () {
-    // Not SSR friendly (for now)
-    this.$subscribe('notes', () => [this.limit])
-  },
-
-  computed: {
-    notes () {
-      // Not SSR friendly (for now)
-      return this.$autorun(() => Notes.find({}, {
-        sort: { created: this.sort ? -1 : 1 },
-      }))
-    },
-
-    firstNote () {
-      return this.notes.length && this.notes[0]
+    async insertLink () {
+      try {
+        await callMethod('links.insert', 'title', 'url')
+        console.log('done')
+      } catch (e) {
+        console.error(e)
+      }
     },
   },
-}
-```
-
-### Components
-
-**Vue 2+ only**
-
-You can use Meteor directly in the template using the Meteor components and scoped slots:
-
-```html
-<!-- Subscription -->
-<MeteorSub
-  name="notes"
-  :parameters="[limit]"
->
-  <template slot-scope="{ loading }">
-    <button @click="sort = !sort">Toggle sort</button>
-
-    <!-- Reactive Meteor data -->
-    <MeteorData
-      :query="findNotes"
-      class="notes"
-    >
-      <template slot-scope="{ data: notes }">
-        <div v-for="note in notes" class="note">
-          <div class="text">{{ note.text }}</div>
-        </div>
-      </template>
-    </MeteorData>
-
-    <div v-if="loading" class="loading">Loading...</div>
-  </template>
-</MeteorSub>
-```
-
-```js
-import { Notes } from '../api/collections'
-
-export default {
-  data () {
-    return {
-      sort: true,
-    }
-  },
-
-  methods: {
-    findNotes () {
-      return Notes.find({}, {
-        sort: { created: this.sort ? -1 : 1 },
-      })
-    }
-  }
 }
 ```
 
 ---
 
-## Next steps
+## Composition API
 
-- [Write your components in vue files](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue-component#usage)
-- [Example project without blaze](https://github.com/Akryum/meteor-vue-example)
-- [Example project with blaze](https://github.com/Akryum/meteor-vue-blaze)
-- [Add routing to your app](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue-router#installation)
-- [Add internationalization to your app](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue-i18n#installation)
-- [Manage your app state with a vuex store](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vuex#installation)
-- [Integrate apollo](https://github.com/Akryum/meteor-vue-component/tree/master/packages/vue-apollo#installation)
+### Subscriptions
+
+Inside the component `setup`, you can use the `subscribe` function:
+
+```js
+import { subscribe } from 'vue-meteor-tracker'
+
+// Simple sub
+
+subscribe('links')
+// With params
+subscribe('linksByPageAndLimit', 1, 10)
+
+// Reactive sub
+
+const page = ref(1)
+subscribe(() => ['linksByPageAndLimit', page.value, 10])
+```
+
+If you need to subscribe later (outside of the `setup` context), call `useSubscribe` instead:
+
+```js
+import { useSubscribe } from 'vue-meteor-tracker'
+
+const { subscribe } = useSubscribe()
+
+setTimeout(() => {
+  subscribe('linksByPage', 2)
+}, 1000)
+```
+
+
+### Reactive Data
+
+In the component `setup` context, you can use the `autorun` function:
+
+```js
+import { autorun } from 'vue-meteor-tracker'
+import { LinksCollection } from '/imports/api/links'
+
+const links = autorun(() => LinksCollection.find({}).fetch()).result
+// const { result, stop } = autorun(() => LinksCollection.find({}).fetch())
+```
+
+If you need to start an autorun later (outside of the `setup` context), call `useAutorun` instead:
+
+```js
+import { useAutorun } from 'vue-meteor-tracker'
+import { LinksCollection } from '/imports/api/links'
+
+const { autorun } = useAutorun()
+
+// Later...
+const links = autorun(() => LinksCollection.find({}).fetch()).result
+```
+
+### Meteor Methods
+
+You can call a Meteor method with a promise using `callMethod`:
+
+```js
+import { callMethod } from 'vue-meteor-tracker'
+
+async function insertLink () {
+  try {
+    await callMethod('links.insert', 'title', 'url')
+    console.log('done')
+  } catch (e) {
+    console.error(e)
+  }
+}
+```
+
+To keep track of pending, error and result state with reactive variables, you can use `useMethod`:
+
+```js
+import { useMethod } from 'vue-meteor-tracker'
+import { LinksCollection } from '/imports/api/links'
+
+const insertLinkMethod = useMethod<[url: string, link: string]>('links.insert')
+insertLinkMethod.onResult((err) => {
+  if (!err) {
+    // Reset form
+    insertLinkForm.title = ''
+    insertLinkForm.url = ''
+  }
+})
+
+// Reactive state
+watch(insertLinkMethod.pending, () => { /* ... */ })
+watch(insertLinkMethod.error, () => { /* ... */ })
+watch(insertLinkMethod.result, () => { /* ... */ })
+
+const insertLinkForm = reactive({
+  title: '',
+  url: '',
+})
+
+async function insertLink () {
+  await insertLinkMethod.call(insertLinkForm.title, insertLinkForm.url)
+  console.log('done')
+}
+```
 
 ---
 
-LICENCE ISC - Created by Guillaume CHAU (@Akryum)
+## License
+
+MIT
