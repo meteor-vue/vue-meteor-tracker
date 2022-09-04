@@ -1,4 +1,2 @@
 src/
-build/
-.babelrc
-.eslintrc.js
+.eslintrc.xjs
