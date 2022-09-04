@@ -163,7 +163,7 @@ export function useMethod <TArgs extends any[] = any[], TResult = any> (name: st
   const result = ref<TResult>()
   const callbacks: MethodResultCallback<TResult>[] = []
 
-  async function _call (...args: TArgs) {
+  async function call (...args: TArgs) {
     pending.value = true
     error.value = undefined
     try {
@@ -181,7 +181,7 @@ export function useMethod <TArgs extends any[] = any[], TResult = any> (name: st
   }
 
   return {
-    call: _call,
+    call,
     pending,
     error,
     result,
