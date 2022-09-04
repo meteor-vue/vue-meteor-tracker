@@ -18,7 +18,10 @@ function autorun<TResult = unknown> (callback: () => TResult): AutorunEffect<TRe
   const result = ref<TResult>()
   const stop = watchEffect((onInvalidate) => {
     const computation = Tracker.autorun(() => {
-      const value = callback()
+      let value: any = callback()
+      if (typeof value?.fetch === 'function') {
+        value = value.fetch()
+      }
       result.value = value && typeof value === 'object' ? markRaw(value as unknown as object) as TResult : value
     })
     onInvalidate(() => {
