@@ -184,6 +184,7 @@ export function useMethod <TArgs extends any[] = any[], TResult = any> (name: st
     call: _call,
     pending,
     error,
+    result,
     onResult,
   }
 }
