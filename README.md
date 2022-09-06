@@ -21,8 +21,39 @@ We are very grateful to all our sponsors for their support:
 
 ## Installation
 
-```
+```sh
 meteor npm install --save vue-meteor-tracker@next
+```
+
+Install `vite:bundler` too:
+
+```sh
+meteor add vite:bundler
+```
+
+[Learn more](https://packosphere.com/vite/bundler)
+
+Example Vite config:
+
+```js
+import { defineConfig } from 'vite'
+import Vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  plugins: [
+    Vue(),
+  ],
+
+  optimizeDeps: {
+    exclude: [
+      'vue-meteor-tracker',
+    ],
+  },
+
+  meteor: {
+    clientEntry: 'imports/ui/main.ts',
+  },
+})
 ```
 
 ## Options API
