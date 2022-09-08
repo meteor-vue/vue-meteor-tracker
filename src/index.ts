@@ -220,7 +220,7 @@ export const VueMeteor = {
           for (const key in this.$options.meteor) {
             if (key.startsWith('$')) continue
             const fn = this.$options.meteor[key]
-            const { result } = autorun(fn)
+            const { result } = autorun(fn.bind(this))
             this.$options.computed[key] = () => result.value
           }
         }
