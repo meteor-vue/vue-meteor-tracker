@@ -168,6 +168,7 @@ export function useMethod <TArgs extends any[] = any[], TResult = any> (name: st
     error.value = undefined
     try {
       result.value = await callMethod(name, ...args)
+      return result.value
     } catch (e) {
       error.value = e as Error
     } finally {
