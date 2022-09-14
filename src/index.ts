@@ -39,7 +39,7 @@ export interface ReactiveMeteorSubscription extends Stoppable {
   sub: Meteor.SubscriptionHandle
 }
 
-function subscribe (payload: string | (() => [name: string, ...args: any[]]), ...args: any[]): ReactiveMeteorSubscription {
+function subscribe (payload: string | (() => [name: string, ...args: any[]] | false), ...args: any[]): ReactiveMeteorSubscription {
   if (typeof payload === 'string') {
     return simpleSubscribe(payload, ...args)
   } else {
@@ -67,20 +67,22 @@ function simpleSubscribe (name: string, ...args: any[]): ReactiveMeteorSubscript
   }
 }
 
-function watchSubscribe (callback: () => [name: string, ...args: any[]]): ReactiveMeteorSubscription {
+function watchSubscribe (callback: () => [name: string, ...args: any[]] | false): ReactiveMeteorSubscription {
   const ready = ref(false)
   const sub = ref<Meteor.SubscriptionHandle>()
   const stop = watch(callback, (value, oldValue, onInvalidate) => {
-    sub.value = markRaw(config.subscribe(...value))
+    if (value !== false) {
+      sub.value = markRaw(config.subscribe(...value))
 
-    const computation = Tracker.autorun(() => {
-      ready.value = sub.value.ready()
-    })
+      const computation = Tracker.autorun(() => {
+        ready.value = sub.value.ready()
+      })
 
-    onInvalidate(() => {
-      sub.value.stop()
-      computation.stop()
-    })
+      onInvalidate(() => {
+        sub.value.stop()
+        computation.stop()
+      })
+    }
   }, {
     immediate: true,
     deep: true,
