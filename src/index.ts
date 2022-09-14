@@ -36,6 +36,7 @@ function autorun<TResult = unknown> (callback: () => TResult): AutorunEffect<TRe
 
 export interface ReactiveMeteorSubscription extends Stoppable {
   ready: ComputedRef<boolean>
+  sub: Meteor.SubscriptionHandle
 }
 
 function subscribe (payload: string | (() => [name: string, ...args: any[]]), ...args: any[]): ReactiveMeteorSubscription {
@@ -62,20 +63,22 @@ function simpleSubscribe (name: string, ...args: any[]): ReactiveMeteorSubscript
   return {
     stop,
     ready: ready.result,
+    sub,
   }
 }
 
 function watchSubscribe (callback: () => [name: string, ...args: any[]]): ReactiveMeteorSubscription {
   const ready = ref(false)
+  const sub = ref<Meteor.SubscriptionHandle>()
   const stop = watch(callback, (value, oldValue, onInvalidate) => {
-    const sub = config.subscribe(...value)
+    sub.value = markRaw(config.subscribe(...value))
 
     const computation = Tracker.autorun(() => {
-      ready.value = sub.ready()
+      ready.value = sub.value.ready()
     })
 
     onInvalidate(() => {
-      sub.stop()
+      sub.value.stop()
       computation.stop()
     })
   }, {
@@ -86,6 +89,9 @@ function watchSubscribe (callback: () => [name: string, ...args: any[]]): Reacti
   return {
     stop,
     ready: computed(() => ready.value),
+    get sub () {
+      return sub.value
+    },
   }
 }
 
